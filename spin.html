@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Prize Wheel After Form</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+
+        #wheelContainer {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            margin: 20px;
+            display: none;
+        }
+
+        #wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            transition: transform 4s ease-out;
+        }
+
+        #spinner {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #ff0000;
+        }
+
+        #spinButton {
+            margin: 20px;
+            padding: 10px 20px;
+            font-size: 18px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none;
+        }
+
+        #spinButton:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        #result {
+            font-size: 24px;
+            margin: 20px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        iframe {
+            width: 100%;
+            max-width: 640px;
+            height: 800px;
+            border: none;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <iframe id="googleForm" src="https://docs.google.com/forms/d/e/1FAIpQLSd6a-Hbrt8q23RUg01aqdBBTjH7WyaUkACVGrx0YFP5rp9Svg/viewform?embedded=true" width="640" height="836" frameborder="0" marginheight="0" marginwidth="0">Loading...</iframe>
+
+    <div id="wheelContainer">
+        <canvas id="wheel"></canvas>
+        <div id="spinner"></div>
+    </div>
+
+    <button id="spinButton">SPIN!</button>
+    <div id="result"></div>
+
+    <script>
+        const prizes = [
+            "₹10",
+            "₹7",
+            "₹5",
+            "₹1",
+            "Better luck next time",
+            "₹1",
+            "₹5",
+            "Better luck next time"
+        ];
+
+        const colors = [
+            "#FFD700", // Gold for highest prize
+            "#FFA500", // Orange for second prize
+            "#FF6384", // Pink
+            "#36A2EB", // Blue
+            "#CCCCCC", // Gray for better luck
+            "#36A2EB", // Blue
+            "#FF6384", // Pink
+            "#CCCCCC"  // Gray for better luck
+        ];
+
+        const canvas = document.getElementById("wheel");
+        const ctx = canvas.getContext("2d");
+        const spinButton = document.getElementById("spinButton");
+        const result = document.getElementById("result");
+        const wheelContainer = document.getElementById("wheelContainer");
+        const googleForm = document.getElementById("googleForm");
+
+        let hasSpun = false;
+
+        // Set canvas size
+        canvas.width = 400;
+        canvas.height = 400;
+
+        function drawWheel() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = canvas.width / 2 - 10;
+            const anglePerPrize = (2 * Math.PI) / prizes.length;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw segments
+            for (let i = 0; i < prizes.length; i++) {
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, i * anglePerPrize, (i + 1) * anglePerPrize);
+                ctx.closePath();
+                ctx.fillStyle = colors[i];
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw text
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(i * anglePerPrize + anglePerPrize / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "white";
+                ctx.font = "bold 16px Arial";
+                ctx.fillText(prizes[i], radius - 20, 5);
+                ctx.restore();
+            }
+        }
+
+        function spinWheel() {
+            if (hasSpun) return;
+
+            const spins = 5;
+            const randomDegrees = Math.floor(Math.random() * 360);
+            const totalDegrees = spins * 360 + randomDegrees;
+            
+            canvas.style.transform = `rotate(${totalDegrees}deg)`;
+            spinButton.disabled = true;
+            hasSpun = true;
+
+            // Calculate winner
+            setTimeout(() => {
+                const winningIndex = Math.floor(((360 - (randomDegrees % 360)) / (360 / prizes.length)));
+                const prize = prizes[winningIndex];
+                result.textContent = prize === "Better luck next time" 
+                    ? "Better luck next time!" 
+                    : `Congratulations! You won ${prize}!`;
+                spinButton.disabled = true;
+            }, 4000);
+        }
+
+        // Listen for form submission
+        window.addEventListener('message', function(event) {
+            // Check if it's the form submission confirmation page
+            if (event.data === 'formSubmitted' || 
+                (event.data && event.data.toString().includes('Form response submitted'))) {
+                wheelContainer.style.display = 'block';
+                spinButton.style.display = 'block';
+                googleForm.style.display = 'none';
+                drawWheel();
+            }
+        });
+
+        // Also listen for changes in the iframe URL
+        googleForm.addEventListener('load', function() {
+            if (googleForm.src.includes('formResponse') || 
+                googleForm.src.includes('closedform')) {
+                wheelContainer.style.display = 'block';
+                spinButton.style.display = 'block';
+                googleForm.style.display = 'none';
+                drawWheel();
+            }
+        });
+
+        spinButton.addEventListener('click', spinWheel);
+
+        // Initial wheel draw
+        drawWheel();
+    </script>
+</body>
+</html>
